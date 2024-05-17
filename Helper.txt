@@ -1,0 +1,405 @@
+АВТОРИЗАЦИЯ (заглушка)
+ Code
+public void Authorization(object? sender, RoutedEventArgs e)
+{
+if (Login.Text == "client" && Password.Text == "client")
+{
+var form2 = new Servis.main_client();
+Hide();
+form2.Show();
+}
+else
+{
+Console.Write("Неверный логин или пароль");
+LogErr.IsVisible = true;
+}
+if (Login.Text == "admin" && Password.Text == "admin")
+{
+var form2 = new Servis.main_admin();
+Hide();
+form2.Show();
+}
+else
+{
+Console.Write("Неверный логин или пароль");
+LogErr.IsVisible = true;
+}
+}
+XAML
+<Grid>
+<StackPanel Orientation="Vertical">
+<StackPanel Orientation="Horizontal">
+<TextBlock VerticalAlignment="Center" Margin=" 20 10 0 10"> Логин: </TextBlock>
+<TextBox Name="Login" Width="200" Margin="10 10 0 10" Text = "" Watermark="Введите логин"></TextBox>
+</StackPanel>
+<StackPanel Orientation="Horizontal">
+<TextBlock VerticalAlignment="Center" Margin=" 10 10 0 30"> Пароль: </TextBlock>
+<TextBox Name="Password" Width="200" Margin="10 10 0 30" Text = "" Watermark="Введите пароль " PasswordChar="*"></TextBox>
+</StackPanel>
+<StackPanel>
+<Label Name="LogErr" Content="Неверный логин/пароль!" IsVisible="False"></Label>
+</StackPanel>
+<StackPanel Orientation="Horizontal">
+<Button Name="Form2" Content="Вход" Click="Authorization" Margin=" 10 10 65 10"></Button>
+<Button Name="Exit" Content="Выход" Click="Exit_PR" Margin=" 100 10 0 10"></Button>
+</StackPanel>
+</StackPanel>
+</Grid>
+
+Отображение
+Code
+public PatientShow()
+{
+    InitializeComponent();
+    string fullTable = "SELECT * FROM пациент;";//Запрос на отображение таблицы 
+    ShowTable(fullTable);//Метод отображения таблиц в дата грид
+    FillCmb();
+}
+private List<Patient> patient;//лист с акссесорами доступа для таблицы доктор
+private string connStr = "server=192.168.161.1;database=policlinica;port=3306;User Id=admin;password=Qwertyu1!ZZZ";//Данные для подключения к MySql
+private MySqlConnection conn;
+
+public void ShowTable(string sql)//Метод отображения таблиц в дата грид
+{
+    patient = new List<Patient>();
+    conn = new MySqlConnection(connStr);//строка поключения
+    conn.Open();//Открытие подключения
+    MySqlCommand command = new MySqlCommand(sql, conn);
+    MySqlDataReader reader = command.ExecuteReader();
+    while (reader.Read() && reader.HasRows)
+    {
+        var currentPatient = new Patient()//Заполнение данными для грида
+        {
+            Код = reader.GetInt32("Код"),
+            Фамилия  = reader.GetString("Фамилия"),
+            Имя = reader.GetString("Имя"),
+            Отчество = reader.GetString("Отчество"),
+            Пол = reader.GetString("Пол"),
+            Возраст = reader.GetInt32("Возраст"),
+            Телефон = reader.GetString("Телефон"),
+            Полис = reader.GetString("Полис")
+        };
+        patient.Add(currentPatient);
+    }
+    conn.Close();//Закрытие подключения
+    DataGrid.ItemsSource = patient;//Заполнение данными грида 
+}
+XAML
+<DataGrid Name="DataGrid" x:CompileBindings="False" Margin ="10 20 0 0" Height="250">
+    <DataGrid.Columns>
+        <DataGridTextColumn Header="Код" Binding="{Binding Код}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Фамилия" Binding="{Binding Фамилия}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Имя" Binding="{Binding Имя}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Отчество" Binding="{Binding Отчество}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Пол" Binding="{Binding Пол}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Возраст" Binding="{Binding Возраст}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Телефон" Binding="{Binding Телефон}"></DataGridTextColumn>
+        <DataGridTextColumn Header="Полис" Binding="{Binding Полис}"></DataGridTextColumn>
+    </DataGrid.Columns>
+</DataGrid>
+
+Поиск
+Code
+private void Searchname(object? sender, TextChangedEventArgs e)
+{
+    var search = patient;
+    search = search.Where(x => x.Имя.Contains(Search1.Text)).ToList();
+    DataGrid.ItemsSource = search;
+}
+
+XAML
+<TextBox Name="Search1" TextChanged="Searchname" Width="200" Margin ="33 10 0 0"></TextBox>
+
+Фильтрация
+Code
+patient = new List<Patient>();
+conn = new MySqlConnection(connStr);
+conn.Open();
+MySqlCommand command = new MySqlCommand("SELECT * FROM пациент", conn);
+MySqlDataReader reader = command.ExecuteReader();
+while (reader.Read() && reader.HasRows)
+{
+    var currentPatient = new Patient()
+    {
+        Код = reader.GetInt32("Код"),
+        Фамилия  = reader.GetString("Фамилия"),
+        Имя = reader.GetString("Имя"),
+        Отчество = reader.GetString("Отчество"),
+        Пол = reader.GetString("Пол"),
+        Возраст = reader.GetInt32("Возраст"),
+        Телефон = reader.GetString("Телефон"),
+        Полис = reader.GetString("Полис")
+    };
+    patient.Add(currentPatient);
+}
+conn.Close();
+CmbNum.ItemsSource = patient;
+
+private void CmbNum_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)//Метод активирующийся по нажатию кнопки для фильтрации по коду
+    {
+        var TypeCmB = (ComboBox)sender;
+        var currentPatient = TypeCmB.SelectedItem as Patient;
+        var fltr = patient
+            .Where(x => x.Код == currentPatient.Код)
+            .ToList();
+        DataGrid.ItemsSource = fltr;
+    }
+
+
+
+
+XAML
+<TextBlock VerticalAlignment="Center"
+           x:Name="FilterNum" Margin ="10 10 0 0">Фильтрация по коду: </TextBlock>
+<ComboBox Name="CmbNum" Width="200" Margin ="10 10 0 0" 
+          x:CompileBindings="False"
+SelectionChanged="CmbNum_OnSelectionChanged">
+    <ComboBox.ItemTemplate>
+        <DataTemplate>
+            <TextBlock Text="{Binding Код}"></TextBlock>
+        </DataTemplate>
+    </ComboBox.ItemTemplate>
+</ComboBox>
+
+Добавление
+Code в новой форме
+private List<Patient> patients;
+private Patient CurrentPatient;
+
+public PatientAddUpd(Patient currentPatient, List<Patient> patient)
+{
+    InitializeComponent();
+    CurrentPatient = currentPatient;
+    this.DataContext = CurrentPatient;
+    patients = patient;
+}
+
+private MySqlConnection conn;
+private string connStr = "server=192.168.161.1;database=policlinica;port=3306;User Id=admin;password=Qwertyu1!ZZZ";
+private void Save_OnClick(object? sender, RoutedEventArgs e)
+{
+    var code = patients.FirstOrDefault(x => x.Код == CurrentPatient.Код);
+    if (code == null)
+    {
+        try
+        {
+            conn = new MySqlConnection(connStr);
+            conn.Open();
+            string add = "INSERT INTO пациент VALUES (" + Convert.ToInt32(Код.Text)+ ", '" + Фамилия.Text + "', '" + Имя.Text + "', '" + Отчество.Text + "', '" + Пол.Text + "', " + Convert.ToInt32(Возраст.Text ) + ", '" + Телефон.Text + "', '" + Полис.Text +"');";
+            MySqlCommand cmd = new MySqlCommand(add, conn);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine("Error" + exception);
+        }
+    }
+Code в форме
+Patient newPatient = new Patient();
+Bolnitca.PatientAddUpd addWindow = new Bolnitca.PatientAddUpd(newPatient, patient);
+addWindow.Show();
+this.Hide();
+
+XAML
+<Grid>
+    <UniformGrid Columns="1">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Код: </TextBlock>
+            <TextBox Name="Код" x:CompileBindings="False" Text="{Binding Код}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Фамилия: </TextBlock>
+            <TextBox Name="Фамилия" x:CompileBindings="False" Text="{Binding Фамилия}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Имя: </TextBlock>
+            <TextBox Name="Имя" x:CompileBindings="False" Text="{Binding Имя}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Отчество: </TextBlock>
+            <TextBox Name="Отчество" x:CompileBindings="False" Text="{Binding Отчество}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Пол: </TextBlock>
+            <TextBox Name="Пол" x:CompileBindings="False" Text="{Binding Пол}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Возраст: </TextBlock>
+            <TextBox Name="Возраст" x:CompileBindings="False" Text="{Binding Возраст}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Телефон: </TextBlock>
+            <TextBox Name="Телефон" x:CompileBindings="False" Text="{Binding Телефон}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Полис: </TextBlock>
+            <TextBox Name="Полис" x:CompileBindings="False" Text="{Binding Полис}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Button Name="Save" Content="Сохранить" Click="Save_OnClick"  Margin = "10 15 0 20"></Button>
+            <Button Name="Back" Content="Назад" Click="GoBack"  Margin = "50 15 0 20"></Button>
+        </StackPanel>
+    </UniformGrid>
+</Grid>
+
+Редактирование
+Code в новой форме
+private List<Patient> patients;
+private Patient CurrentPatient;
+
+public PatientAddUpd(Patient currentPatient, List<Patient> patient)
+{
+    InitializeComponent();
+    CurrentPatient = currentPatient;
+    this.DataContext = CurrentPatient;
+    patients = patient;
+}
+
+private MySqlConnection conn;
+private string connStr = "server=192.168.161.1;database=policlinica;port=3306;User Id=admin;password=Qwertyu1!ZZZ";
+private void Save_OnClick(object? sender, RoutedEventArgs e)
+{
+    var code = patients.FirstOrDefault(x => x.Код == CurrentPatient.Код);
+    if (code == null)
+    {
+       else
+{
+    try
+    {
+        conn = new MySqlConnection(connStr);
+        conn.Open();
+        string upd = "UPDATE пациент SET Фамилия = '" + Фамилия.Text + "', Имя = '" + Имя.Text + "', Отчество = '" + Отчество.Text + "', Пол = '" + Пол.Text + "', Возраст = "+ Convert.ToInt32(Возраст.Text) + ", Телефон = '" + Телефон.Text + "', Полис = '" + Полис.Text + "' WHERE Код = " + Convert.ToInt32(Код.Text) + ";";
+        MySqlCommand cmd = new MySqlCommand(upd, conn);
+        cmd.ExecuteNonQuery();
+        conn.Close();
+    }
+    catch (Exception exception)
+    {
+        Console.Write("Error" + exception);
+    }
+}
+Code в форме
+Patient currentPatient = DataGrid.SelectedItem as Patient;
+if (currentPatient == null)
+{
+    return;
+}
+Bolnitca.PatientAddUpd editWindow = new Bolnitca.PatientAddUpd(currentPatient, patient);
+editWindow.Show();
+this.Close();
+
+XAML
+<Grid>
+    <UniformGrid Columns="1">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Код: </TextBlock>
+            <TextBox Name="Код" x:CompileBindings="False" Text="{Binding Код}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Фамилия: </TextBlock>
+            <TextBox Name="Фамилия" x:CompileBindings="False" Text="{Binding Фамилия}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Имя: </TextBlock>
+            <TextBox Name="Имя" x:CompileBindings="False" Text="{Binding Имя}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Отчество: </TextBlock>
+            <TextBox Name="Отчество" x:CompileBindings="False" Text="{Binding Отчество}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Пол: </TextBlock>
+            <TextBox Name="Пол" x:CompileBindings="False" Text="{Binding Пол}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Возраст: </TextBlock>
+            <TextBox Name="Возраст" x:CompileBindings="False" Text="{Binding Возраст}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Телефон: </TextBlock>
+            <TextBox Name="Телефон" x:CompileBindings="False" Text="{Binding Телефон}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin = "10 35 0 0">Полис: </TextBlock>
+            <TextBox Name="Полис" x:CompileBindings="False" Text="{Binding Полис}" Width="200" Height="5" Margin = "10 0 0 0"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Button Name="Save" Content="Сохранить" Click="Save_OnClick"  Margin = "10 15 0 20"></Button>
+            <Button Name="Back" Content="Назад" Click="GoBack"  Margin = "50 15 0 20"></Button>
+        </StackPanel>
+    </UniformGrid>
+</Grid>
+
+
+Удаление
+Code
+try
+{
+    Patient currentPatient = DataGrid.SelectedItem as Patient;
+    if (currentPatient == null)
+    {
+        return;
+    }
+    conn = new MySqlConnection(connStr);
+    conn.Open();
+    string sql = "DELETE FROM пациент WHERE Код = " + currentPatient.Код;
+    MySqlCommand cmd = new MySqlCommand(sql, conn);
+    cmd.ExecuteNonQuery();
+    conn.Close();
+    patient.Remove(currentPatient);
+    ShowTable("SELECT * FROM пациент;");
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+
+XAML
+<StackPanel Margin="10 12 00 0">
+    <Button Name="Delete" Content="Удалить" Click="DeleteData"></Button>
+</StackPanel>
+
+Сортировка А-Я
+Code
+var sortedItems = DataGrid.ItemsSource.Cast<Usluga>().OrderBy(s => s.Стоимость).ToList();
+DataGrid.ItemsSource = sortedItems;
+
+XAML
+<StackPanel Orientation="Horizontal" Margin="10 10 00 0">
+    <Button Content="Сортировка по возрастанию цены" Click="SortAscending" ></Button>
+</StackPanel>
+
+
+Сортировка Я-А
+Code
+var sortedItems = DataGrid.ItemsSource.Cast<Usluga>().OrderByDescending(s => s.Стоимость).ToList();
+DataGrid.ItemsSource = sortedItems;
+
+XAML
+<StackPanel Orientation="Horizontal" Margin="10 10 00 0">
+    <Button Content="Сортировка по убыванию цены" Click="SortDescending" ></Button>
+</StackPanel>
+
+Волшебная строка на отображение
+Code
+<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+
+Волшебная строка на папу
+Code
+<AvaloniaResource Include="Assets\**" />
+
+
+
+
+Title="Внесение изменений"
+Height="700"
+Width="700"
+Icon="/Assets/service_logo.ico"
+WindowStartupLocation="CenterScreen"
+Background="SlateGray">
+
+
+<StackPanel>
+            <Image Width="100" Height="100" VerticalAlignment="Top" Source="/Assets/ico.ico"></Image>
+        </StackPanel>

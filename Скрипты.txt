@@ -1,0 +1,197 @@
+-- 1. Подключение к серверу
+USE master;
+GO
+ 
+---- Создание пользователя sa_1 и установка пароля
+CREATE LOGIN sa_1 WITH PASSWORD = 'De_05';
+GO
+
+---- Добавление пользователя sa_1 в роль sysadmin
+ALTER SERVER ROLE sysadmin ADD MEMBER sa_1;
+GO
+ ////////////////////////////////////////////
+---- 2. Создание базы данных BD
+CREATE DATABASE BD;
+GO
+/////////////////////////////////////////////
+-- 3. Использование базы данных BD
+USE BD;
+GO
+
+---- Создание таблицы Users
+CREATE TABLE Users (
+    UserID INT PRIMARY KEY IDENTITY(1,1),
+    UserName NVARCHAR(50),
+    UserPassword NVARCHAR(5),
+    PasswordHash VARBINARY(256)
+);
+GO
+ ////////////////////////////////////
+-- Создание уникальных пользователей и баз данных
+DECLARE @counter INT = 1;
+ 
+WHILE @counter <= 10
+BEGIN
+    -- Создание уникального имени пользователя
+    DECLARE @username NVARCHAR(50);
+    SET @username = 'user' + CAST(@counter AS NVARCHAR(2));
+ 
+    -- Генерация случайного пароля
+    DECLARE @password NVARCHAR(5);
+    SET @password = SUBSTRING(CONVERT(NVARCHAR(255), NEWID()), 0, 6);
+ 
+    -- Создание пользователя для входа в SSMS
+    DECLARE @loginName NVARCHAR(100);
+    SET @loginName = @username;
+ 
+    -- Создание логина с паролем
+    EXEC('CREATE LOGIN [' + @loginName + '] WITH PASSWORD = ''' + @password + ''', CHECK_POLICY = OFF;');
+ 
+    -- Создание уникального имени базы данных
+    DECLARE @dbname NVARCHAR(50);
+    SET @dbname = 'BD' + CAST(@counter AS NVARCHAR(2));
+ 
+    -- Создание базы данных
+    EXEC('CREATE DATABASE ' + @dbname);
+ 
+    -- Использование базы данных
+    
+    use [master]
+    -- Привязка пользователя к своей базе данных
+    EXEC('CREATE USER [' + @username + '] FOR LOGIN [' + @loginName + '] WITH DEFAULT_SCHEMA = [' + @username + '];');
+    EXEC('ALTER ROLE db_datareader ADD MEMBER [' + @username + '];');
+    EXEC('ALTER ROLE db_datawriter ADD MEMBER [' + @username + '];');
+    EXEC('ALTER LOGIN ['+@username+'] WITH DEFAULT_DATABASE=['+@dbname+'], DEFAULT_LANGUAGE=[English], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF DENY VIEW ANY DATABASE TO ['+@username+']');
+ 
+    EXEC('USE ['+@dbname+']; EXEC dbo.sp_changedbowner @loginame = '+@username+', @map = false;');
+    
+    use BD
+    -- Заполнение таблицы Users
+    DECLARE @passwordHash VARBINARY(256);
+    SET @passwordHash = HASHBYTES('SHA2_256', @password);
+    INSERT INTO Users (UserName, UserPassword, PasswordHash) VALUES (@username, @password, @passwordHash);
+ 
+    SET @counter = @counter + 1;
+END;
+GO
+ //////////////////////////////////////
+-- Вывод информации о пользователях
+SELECT UserName, UserPassword
+FROM Users;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE TABLE HistoryCost(
+ CreateAt DATETIME NOT NULL DEFAULT GETDATE(),
+ Product varchar(10),
+ OldCost decimal(18,2),
+ NewCost decimal(18,2)
+)
+
+CREATE TRIGGER TG_HISTORYCOST 
+ON Товар
+AFTER UPDATE
+AS
+Insert into HistoryCost values 
+(Артикул, select Цена from deleted, select Цена from inserted)
+
+delete from Товар where СрокГодности < getdate();
+
+update Товар set Цена=Цена*0.75 where СтранаИД=1;
+
+
+select 
+ДатаПродажи, 
+ЗаказИД, 
+sum(select Цена*Количество as Стоимость from Заявка
+inner join Товар on Заявка.ТоварИД=Товар.Артикул
+) as Сумма
+from Продажа
+group by ЗаказИД
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+USE PodgotovkaDB
+GO
+CREATE TRIGGER trg_UpdateHistory
+ON Товар
+AFTER UPDATE
+AS
+BEGIN  
+  DECLARE @TovarID NVARCHAR(30)
+  DECLARE @OldValue decimal(18,2) 
+  DECLARE @NewValue decimal(18,2)
+  DECLARE @DateChanged DATETIME  
+  SET @DateChanged = GETDATE()
+  SELECT @TovarID = Артикул FROM Товар 
+  SELECT @OldValue = Цена FROM deleted
+  SELECT @NewValue = Цена FROM inserted 
+  INSERT INTO ИсторияЦены (ТоварИД, СтароеЗначениеЦены, НовоеЗначениеЦены, ДатаИзменения) VALUES (@TovarID ,@OldValue, @NewValue, @DateChanged)
+END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE CheckEmailAddresses
+AS
+BEGIN
+    CREATE TABLE #EmailValidation (
+        Email VARCHAR(255),
+        IsValid BIT
+    );
+    INSERT INTO #EmailValidation (Email, IsValid)
+    SELECT EmailAddress, 
+           CASE 
+               WHEN EmailAddress LIKE '%[%""<>\]%' THEN 0
+               WHEN EmailAddress NOT LIKE '%@%.%' THEN 0
+               ELSE 1
+           END
+    FROM Email; 
+    SELECT Email, IsValid
+    FROM #EmailValidation;
+    DROP TABLE #EmailValidation;
+END;
+GO
+EXEC CheckEmailAddresses;
